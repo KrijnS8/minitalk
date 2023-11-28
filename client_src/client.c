@@ -6,7 +6,7 @@
 /*   By: kschelvi <kschelvi@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/23 13:58:32 by kschelvi      #+#    #+#                 */
-/*   Updated: 2023/11/27 17:41:33 by kschelvi      ########   odam.nl         */
+/*   Updated: 2023/11/28 15:58:09 by kschelvi      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
+
+void sigusr1_handler(int signum)
+{
+    (void)signum;
+}
 
 bool	validate_args(int argc, char *argv[])
 {
@@ -47,21 +52,6 @@ void	send_bit(int bit, pid_t s_pid)
 	}
 }
 
-void	send_len(size_t m_len, pid_t s_pid)
-{
-	int	i;
-	int	bit;
-
-	i = 0;
-	while ((size_t)i < sizeof(size_t) * 8)
-	{
-		bit = (m_len >> i) & 1;
-		send_bit(bit, s_pid);
-		i++;
-		usleep(1000);
-	}
-}
-
 void	send_msg(char *msg, pid_t s_pid)
 {
 	int		i;
@@ -71,13 +61,13 @@ void	send_msg(char *msg, pid_t s_pid)
 	i = 0;
 	while (msg[i] != '\0')
 	{
-		j = 7;
-		while (j >= 0)
+		j = 0;
+		while (j < 8)
 		{
 			bit = (msg[i] >> j) & 1;
 			send_bit(bit, s_pid);
-			j--;
-			usleep(1000);
+			j++;
+			usleep(2000);
 		}
 		i++;
 	}
@@ -93,7 +83,17 @@ int	main(int argc, char *argv[])
 		return (1);
 	}
 	s_pid = ft_atoi(argv[1]);
-	send_len(ft_strlen(argv[2]), s_pid);
+
+	/* struct sigaction sa;
+    sa.sa_handler = sigusr1_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGUSR1, &sa, NULL) == -1)
+    {
+        ft_printf("Unable to set up signal handler for SIGUSR1\n");
+        return 1;
+    } */
 	send_msg(argv[2], s_pid);
 	return (0);
 }

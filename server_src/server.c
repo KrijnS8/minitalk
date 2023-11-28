@@ -6,45 +6,55 @@
 /*   By: kschelvi <kschelvi@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/23 14:44:54 by kschelvi      #+#    #+#                 */
-/*   Updated: 2023/11/27 17:21:59 by kschelvi      ########   odam.nl         */
+/*   Updated: 2023/11/28 15:58:22 by kschelvi      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <unistd.h>
 #include <signal.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include "../libft/libft.h"
 
-int	count = 0;
-
-void	sigusr1_handler(int signum)
+void	send_ack(pid_t c_pid)
 {
-	signum++;
-	ft_printf("0");
-	count++;
-	if (count == 8)
-	{
-		ft_printf("\n");
-		count = 0;
-	}
+	kill(c_pid, SIGUSR1);
 }
 
-void	sigusr2_handler(int signum)
+void	signal_handler(int signum)
 {
-	signum++;
-	ft_printf("1");
-	count++;
-	if (count == 8)
+	static int	i = 0;
+	static char	byte = 0;
+
+	if (signum == SIGUSR2)
+		byte |= (1 << i);
+	i++;
+	if (i == 8)
 	{
-		ft_printf("\n");
-		count = 0;
+		ft_printf("%c", byte);
+		i = 0;
+		byte = 0;
 	}
+	//send_ack(getppid());
 }
 
 int	main()
 {
-	signal(SIGUSR1, sigusr1_handler);
-	signal(SIGUSR2, sigusr2_handler);
+	struct sigaction	sa;
+	
+	sa.sa_handler = signal_handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	if (sigaction(SIGUSR1, &sa, NULL) == -1)
+	{
+		ft_printf("Unable to setup signal handler for SIGUSR1");
+		return (1);
+	}
+	if (sigaction(SIGUSR2, &sa, NULL) == -1)
+	{
+		ft_printf("Unable to setup signal handler for SIGUSR2");
+		return (1);
+	}
 	ft_printf("PID: %d\n", getpid());
 	ft_printf("Server is waiting for signals...\n");
 	while (1)
