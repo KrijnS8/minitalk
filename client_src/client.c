@@ -6,7 +6,7 @@
 /*   By: kschelvi <kschelvi@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/23 13:58:32 by kschelvi      #+#    #+#                 */
-/*   Updated: 2023/11/28 15:58:09 by kschelvi      ########   odam.nl         */
+/*   Updated: 2023/11/28 17:44:52 by kschelvi      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,15 +17,18 @@
 #include <unistd.h>
 #include <stdio.h>
 
-void sigusr1_handler(int signum)
+volatile sig_atomic_t	g_received_request = false;
+
+void	sigusr1_handler(int signum)
 {
-    (void)signum;
+	(void)signum;
+	g_received_request = true;
 }
 
 bool	validate_args(int argc, char *argv[])
 {
 	char	*str;
-	
+
 	if (argc != 3)
 		return (false);
 	str = argv[1];
@@ -57,7 +60,7 @@ void	send_msg(char *msg, pid_t s_pid)
 	int		i;
 	int		j;
 	int		bit;
-	
+
 	i = 0;
 	while (msg[i] != '\0')
 	{
@@ -67,7 +70,9 @@ void	send_msg(char *msg, pid_t s_pid)
 			bit = (msg[i] >> j) & 1;
 			send_bit(bit, s_pid);
 			j++;
-			usleep(2000);
+			while (!g_received_request)
+				usleep(1);
+			g_received_request = false;
 		}
 		i++;
 	}
@@ -83,17 +88,7 @@ int	main(int argc, char *argv[])
 		return (1);
 	}
 	s_pid = ft_atoi(argv[1]);
-
-	/* struct sigaction sa;
-    sa.sa_handler = sigusr1_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-
-    if (sigaction(SIGUSR1, &sa, NULL) == -1)
-    {
-        ft_printf("Unable to set up signal handler for SIGUSR1\n");
-        return 1;
-    } */
+	signal(SIGUSR1, sigusr1_handler);
 	send_msg(argv[2], s_pid);
 	return (0);
 }

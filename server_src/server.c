@@ -6,7 +6,7 @@
 /*   By: kschelvi <kschelvi@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/23 14:44:54 by kschelvi      #+#    #+#                 */
-/*   Updated: 2023/11/28 15:58:22 by kschelvi      ########   odam.nl         */
+/*   Updated: 2023/11/28 17:43:20 by kschelvi      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,11 +21,12 @@ void	send_ack(pid_t c_pid)
 	kill(c_pid, SIGUSR1);
 }
 
-void	signal_handler(int signum)
+void	signal_handler(int signum, siginfo_t *info, void *context)
 {
 	static int	i = 0;
 	static char	byte = 0;
 
+	(void)context;
 	if (signum == SIGUSR2)
 		byte |= (1 << i);
 	i++;
@@ -35,16 +36,16 @@ void	signal_handler(int signum)
 		i = 0;
 		byte = 0;
 	}
-	//send_ack(getppid());
+	send_ack(info->si_pid);
 }
 
-int	main()
+int	main(void)
 {
 	struct sigaction	sa;
-	
-	sa.sa_handler = signal_handler;
+
+	sa.sa_sigaction = signal_handler;
 	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = 0;
+	sa.sa_flags = SA_SIGINFO;
 	if (sigaction(SIGUSR1, &sa, NULL) == -1)
 	{
 		ft_printf("Unable to setup signal handler for SIGUSR1");
@@ -58,7 +59,5 @@ int	main()
 	ft_printf("PID: %d\n", getpid());
 	ft_printf("Server is waiting for signals...\n");
 	while (1)
-	{
-		sleep(1);
-	}
+		pause();
 }
